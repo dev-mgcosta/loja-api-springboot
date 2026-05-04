@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Loja API - Produtos</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="container">
+
+        <h1>Cadastro de Produtos</h1>
+
+        <form id="formProduto">
+            <label>Nome:</label><br>
+            <input type="text" id="nome" required><br><br>
+
+            <label>Preço:</label><br>
+            <input type="number" id="preco" step="0.01" required><br><br>
+
+            <label>Estoque:</label><br>
+            <input type="number" id="estoque" required><br><br>
+
+            <button type="submit">Cadastrar Produto</button>
+        </form>
+
+        <p id="mensagem"></p>
+
+        <hr>
+
+        <h2>Produtos cadastrados</h2>
+
+        <button onclick="listarProdutos()">Atualizar Lista</button>
+
+        <ul id="listaProdutos"></ul>
+
+    </div>
+
+    <script>
+        const form = document.getElementById("formProduto");
+        const mensagem = document.getElementById("mensagem");
+        const listaProdutos = document.getElementById("listaProdutos");
+
+        form.addEventListener("submit", function(event) {
+            event.preventDefault();
+
+            const produto = {
+                nome: document.getElementById("nome").value,
+                preco: Number(document.getElementById("preco").value),
+                estoque: Number(document.getElementById("estoque").value)
+            };
+
+            fetch("/produtos", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(produto)
+            })
+            .then(response => response.json())
+            .then(data => {
+                mensagem.textContent = "Produto cadastrado com sucesso!";
+                form.reset();
+                listarProdutos();
+            })
+            .catch(error => {
+                mensagem.textContent = "Erro ao cadastrar produto.";
+                console.log(error);
+            });
+        });
+
+        function listarProdutos() {
+            fetch("/produtos")
+            .then(response => response.json())
+            .then(produtos => {
+                listaProdutos.innerHTML = "";
+
+                produtos.forEach(produto => {
+                    const item = document.createElement("li");
+
+                    item.textContent = produto.nome 
+                        + " - R$ " + produto.preco 
+                        + " - Estoque: " + produto.estoque + " ";
+
+                    const botaoEditar = document.createElement("button");
+                    botaoEditar.textContent = "Editar";
+
+                    botaoEditar.onclick = function() {
+                        editarProduto(produto);
+                    };
+
+                    const botaoExcluir = document.createElement("button");
+                    botaoExcluir.textContent = "Excluir";
+
+                    botaoExcluir.onclick = function() {
+                        excluirProduto(produto.id);
+                    };
+
+                    item.appendChild(botaoEditar);
+                    item.appendChild(botaoExcluir);
+
+                    listaProdutos.appendChild(item);
+                });
+            })
+            .catch(error => {
+                console.log(error);
+            });
+        }
+
+        function editarProduto(produto) {
+            const novoNome = prompt("Digite o novo nome:", produto.nome);
+            const novoPreco = prompt("Digite o novo preço:", produto.preco);
+            const novoEstoque = prompt("Digite o novo estoque:", produto.estoque);
+
+            if (novoNome === null || novoPreco === null || novoEstoque === null) {
+                return;
+            }
+
+            const produtoAtualizado = {
+                nome: novoNome,
+                preco: Number(novoPreco.replace(",", ".")),
+                estoque: Number(novoEstoque)
+            };
+
+            fetch("/produtos/" + produto.id, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(produtoAtualizado)
+            })
+            .then(response => response.json())
+            .then(data => {
+                mensagem.textContent = "Produto atualizado com sucesso!";
+                listarProdutos();
+            })
+            .catch(error => {
+                mensagem.textContent = "Erro ao atualizar produto.";
+                console.log(error);
+            });
+        }
+
+        function excluirProduto(id) {
+            fetch("/produtos/" + id, {
+                method: "DELETE"
+            })
+            .then(() => {
+                mensagem.textContent = "Produto excluído com sucesso!";
+                listarProdutos();
+            })
+            .catch(error => {
+                mensagem.textContent = "Erro ao excluir produto.";
+                console.log(error);
+            });
+        }
+
+        listarProdutos();
+    </script>
+
+</body>
+</html>
